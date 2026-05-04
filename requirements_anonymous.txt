@@ -1,0 +1,21 @@
+# Minimal runtime dependencies for anonymous reproduction
+# Install with: pip install -r requirements_anonymous.txt
+# Note: robustbench currently imports pkg_resources at runtime.
+# Keep setuptools < 81 to ensure pkg_resources availability.
+setuptools<81
+
+numpy
+packaging
+Pillow
+requests
+torch
+torchvision
+yacs==0.1.8
+iopath==0.1.10
+timm==1.0.9
+open_clip_torch==2.32.0
+robustbench==1.1.1
+webdataset==1.0.2
+
+# Required by robustbench import chain in this tested environment.
+git+https://github.com/fra31/auto-attack@a39220048b3c9f2cca9a4d3a54604793c68eca7e#egg=autoattack

@@ -1,0 +1,76 @@
+SETTING: reset_each_shift
+
+DATA_DIR: ./data
+SAVE_DIR: ./output
+PRINT_EVERY: -1
+RNG_SEED: 1
+DETERMINISM: False
+MIXED_PRECISION: False
+DESC: mg_mtta on ImageNet-C visual shift (multimodal fusion kept active; text branch stays clean)
+
+MODEL:
+  ADAPTATION: mg_mtta
+  ARCH: ViT-B-16
+  WEIGHTS: ./checkpoints/open_clip/open_clip_model.safetensors
+  USE_CLIP: True
+  EPISODIC: False
+  RESET_AFTER_NUM_UPDATES: 0
+
+CORRUPTION:
+  DATASET: imagenet_c
+  SEVERITY: [5]
+  TYPE:
+    - gaussian_noise
+    - shot_noise
+    - impulse_noise
+    - defocus_blur
+    - glass_blur
+    - motion_blur
+    - zoom_blur
+    - snow
+    - frost
+    - fog
+    - brightness
+    - contrast
+    - elastic_transform
+    - pixelate
+    - jpeg_compression
+
+TEST:
+  BATCH_SIZE: 64
+
+OPTIM:
+  METHOD: SGD
+  LR: 0.001
+  STEPS: 2
+  WD: 0.0
+  BETA: 0.9
+
+CLIP:
+  PROMPT_MODE: custom
+  PROMPT_TEMPLATE: ["a photo of a {}."]
+  FREEZE_TEXT_ENCODER: True
+  PRECISION: fp32
+  STRICT_OPENAI_ARCH: True
+
+TEXT_SHIFT:
+  ENABLED: False
+  REGIME: visual_shift
+  PROTOCOL: main
+  FAMILY: tokenization_stress
+  LEVEL: 3
+  KEEP_CLEAN_BANK: True
+
+MGMTTA:
+  UPDATE_PATTERNS: ["prompt_learner", "adapter", "gate", "ln", "bn", "norm"]
+  LAMBDA_GATE: 0.1
+  LAMBDA_DIV: 0.01
+  GATE_HIDDEN_DIM: 8
+  GATE_GRANULARITY: batch
+  FIXED_ALPHA: 0.95
+  ANCHOR_CONF_THRESHOLD: 0.7
+  ANCHOR_MOMENTUM: 0.9
+  RELIABILITY_TAU: 5.0
+  KAPPA_RANK_WEIGHT: 0.5
+  RELIABILITY_CONFLICT_WEIGHT: 0.0
+  USE_ENTROPY_FEATURE: True
