@@ -200,16 +200,6 @@ The following files are intentionally excluded from this repository:
 
 For third-party dependency notes, please see `THIRD_PARTY_NOTICES.md`.
 
-## Citation
-
-```bibtex
-@misc{chen2026mgmtta,
-  title  = {Majorization-Guided Test-Time Adaptation for Vision-Language Models under Modality-Specific Shift},
-  author = {Chen, Lixian and Huang, Mingxuan and Chen, Yanhui and Lin, Junyi},
-  year   = {2026},
-  note   = {Manuscript under submission}
-}
-```
 
 ## Contact
 
