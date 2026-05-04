@@ -1,116 +1,155 @@
-# MG-MTTA Anonymous Reproduction Package
+# MG-MTTA: Majorization-Guided Multimodal Test-Time Adaptation
 
-This package contains the minimal code required to run the MG-MTTA ImageNet-C experiment in anonymous review mode.
+This repository contains the research code for **Majorization-Guided Test-Time Adaptation for Vision-Language Models under Modality-Specific Shift**.
 
-## Main Entry
+MG-MTTA studies how vision-language models behave under modality-specific distribution shifts, including visual corruption, text prompt shift, and joint modality shift. The method performs lightweight test-time adaptation while keeping the backbone model frozen.
 
-- Python entry: `test_time.py`
-- Primary config: `cfgs/imagenet_c/mg_mtta_imagenet_c.yaml`
-- Optional launcher: `scripts/run_mg_mtta_multi_seed.sh`
+> Paper status: manuscript under submission / under review.
 
-## Included Scope
+## Highlights
 
-Included runtime modules only:
+- Vision-Language Model test-time adaptation
+- Modality-specific distribution shift
+- ImageNet-C evaluation
+- CLIP / OpenCLIP-style backbone
+- Lightweight adaptation with frozen backbone
+- Single-run and multi-seed evaluation scripts
 
-- `methods/` (MG-MTTA path only)
-- `models/`
-- `mydatasets/`
-- `prompts/`
-- `augmentations/`
-- `utils/`
-- `conf.py`, `test_time.py`, `cfgs/imagenet_c/mg_mtta_imagenet_c.yaml`
-- `LICENSE`, `requirements_anonymous.txt`
+## Project Structure
 
-Not included:
-
-- datasets, checkpoints, logs, outputs, figures, cache, temporary files
-- unrelated experiment scripts and non-MG-MTTA configs
-
-## Setup
-
-```bash
-pip install -r requirements_anonymous.txt
+```text
+MG-MTTA/
+├── test_time.py
+├── conf.py
+├── cfgs/
+│   └── imagenet_c/
+│       └── mg_mtta_imagenet_c.yaml
+├── methods/
+├── models/
+├── mydatasets/
+├── prompts/
+├── augmentations/
+├── utils/
+├── scripts/
+│   └── run_mg_mtta_multi_seed.sh
+├── requirements.txt
+├── LICENSE
+└── THIRD_PARTY_NOTICES.md
 ```
 
-Tested runtime dependency versions are pinned in `requirements_anonymous.txt`.
+## Installation
 
-Important environment note:
+```bash
+conda create -n mgmtta python=3.10 -y
+conda activate mgmtta
+pip install -r requirements.txt
+```
 
-- This package was tested in an existing Python environment with preinstalled CUDA-enabled PyTorch.
-- If your environment already provides `torch`/`torchvision`, keep them compatible with your local CUDA stack.
+Please make sure CUDA-enabled PyTorch is correctly installed in your environment.
 
-## Required External Assets
+## Required Assets
 
-Place external assets under these paths (or override from CLI):
+Datasets and checkpoints are not included in this repository.
 
-- data root: `./data`
-  - expected ImageNet-C path: `./data/ImageNet-C/...`
-- model weights: `./checkpoints/open_clip/open_clip_model.safetensors`
+Please prepare the following files:
 
-Default path behavior:
+```text
+data/
+└── ImageNet-C/
+    └── ...
 
-- `cfgs/imagenet_c/mg_mtta_imagenet_c.yaml` defaults to:
-  - `DATA_DIR: ./data`
-  - `MODEL.WEIGHTS: ./checkpoints/open_clip/open_clip_model.safetensors`
+checkpoints/
+└── open_clip/
+    └── open_clip_model.safetensors
+```
+
+The default config uses:
+
+```yaml
+DATA_DIR: ./data
+MODEL.WEIGHTS: ./checkpoints/open_clip/open_clip_model.safetensors
+```
+
+You can also override these paths from the command line.
 
 ## Run
 
 Single run:
 
 ```bash
-python test_time.py --cfg cfgs/imagenet_c/mg_mtta_imagenet_c.yaml
+CUDA_VISIBLE_DEVICES=0 python test_time.py \
+  --cfg cfgs/imagenet_c/mg_mtta_imagenet_c.yaml
 ```
 
-Override paths and runtime options:
+Run with custom paths:
 
 ```bash
-python test_time.py --cfg cfgs/imagenet_c/mg_mtta_imagenet_c.yaml \
-  DATA_DIR ./data \
-  MODEL.WEIGHTS ./checkpoints/open_clip/open_clip_model.safetensors \
-  TEST.BATCH_SIZE 64 TEST.NUM_WORKERS 4
+CUDA_VISIBLE_DEVICES=0 python test_time.py \
+  --cfg cfgs/imagenet_c/mg_mtta_imagenet_c.yaml \
+  DATA_DIR /abs/path/to/data \
+  MODEL.WEIGHTS /abs/path/to/open_clip_model.safetensors \
+  TEST.BATCH_SIZE 64 \
+  TEST.NUM_WORKERS 4
 ```
 
-Or use the launcher:
+Tiny smoke test:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python test_time.py \
+  --cfg cfgs/imagenet_c/mg_mtta_imagenet_c.yaml \
+  CORRUPTION.NUM_EX 8 \
+  TEST.BATCH_SIZE 8 \
+  TEST.NUM_WORKERS 2 \
+  OPTIM.STEPS 1
+```
+
+Multi-seed evaluation:
 
 ```bash
 bash scripts/run_mg_mtta_multi_seed.sh
 ```
 
-## Quick Sanity Checks
+## Results
 
-Parser/import sanity check:
+Experimental results will be updated after the paper review process.
 
-```bash
-python test_time.py --help
+| Setting | Dataset | Backbone | Method | Metric |
+|---|---|---|---|---|
+| Visual Shift | ImageNet-C | CLIP / OpenCLIP | Source | TODO |
+| Visual Shift | ImageNet-C | CLIP / OpenCLIP | MG-MTTA | TODO |
+| Text Shift | ImageNet-style evaluation | CLIP / OpenCLIP | MG-MTTA | TODO |
+| Joint Shift | ImageNet-C + Text Shift | CLIP / OpenCLIP | MG-MTTA | TODO |
+
+## Notes
+
+The following files are intentionally excluded:
+
+- datasets
+- checkpoints
+- logs
+- outputs
+- cache files
+- temporary files
+- unrelated experiment scripts
+
+For third-party dependency notes, please see `THIRD_PARTY_NOTICES.md`.
+
+## Citation
+
+```bibtex
+@misc{chen2026mgmtta,
+  title  = {Majorization-Guided Test-Time Adaptation for Vision-Language Models under Modality-Specific Shift},
+  author = {Chen, Lixian and others},
+  year   = {2026},
+  note   = {Manuscript under submission}
+}
 ```
 
-Config loading sanity check:
+## Contact
 
-```bash
-python -c "from conf import reset_cfg, merge_from_file, cfg; reset_cfg(); merge_from_file('cfgs/imagenet_c/mg_mtta_imagenet_c.yaml'); print(cfg.MODEL.ADAPTATION, cfg.CORRUPTION.DATASET, cfg.MODEL.USE_CLIP)"
-```
+Lixian Chen  
+Email: lix.chen41@gmail.com
 
-Tiny end-to-end smoke run (requires external data and checkpoint to be available):
+## License
 
-```bash
-CUDA_VISIBLE_DEVICES=0 BATCLIP_CUDA_INDEX=0 \
-python test_time.py --cfg cfgs/imagenet_c/mg_mtta_imagenet_c.yaml \
-  CORRUPTION.NUM_EX 8 TEST.BATCH_SIZE 8 TEST.NUM_WORKERS 2 OPTIM.STEPS 1
-```
-
-If assets are not under default relative paths, override explicitly:
-
-```bash
-python test_time.py --cfg cfgs/imagenet_c/mg_mtta_imagenet_c.yaml \
-  DATA_DIR /abs/path/to/data \
-  MODEL.WEIGHTS /abs/path/to/open_clip_model.safetensors \
-  CORRUPTION.NUM_EX 8 TEST.BATCH_SIZE 8 TEST.NUM_WORKERS 2 OPTIM.STEPS 1
-```
-
-## Anonymous Handling
-
-- Absolute local paths were replaced with relative placeholders.
-- In-file GitHub/Gitee URLs were redacted.
-- Author/project-identifying README and export artifacts were not copied.
-
-For third-party and license notes, see `THIRD_PARTY_NOTICES.md`.
+This project is released under the license provided in `LICENSE`.
