@@ -101,11 +101,6 @@ bash scripts/run_mg_mtta_multi_seed.sh
 }
 ```
 
-## Contact
-
-Lixian Chen  
-3123003175@mail2.gdut.edu.cn
-
 ## License
 
 This project is released under the license provided in [LICENSE](LICENSE).
