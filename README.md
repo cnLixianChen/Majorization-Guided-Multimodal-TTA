@@ -12,10 +12,8 @@ The method keeps the pretrained CLIP backbone frozen and adapts a lightweight fu
 
 ## Highlights
 
-- Test-time adaptation under visual, textual, and joint shifts
 - Reliability-aware multimodal fusion
 - Majorization-guided posterior analysis
-- Lightweight adaptation with a frozen CLIP backbone
 - Reduced wrong-more-confident failures under severe shifts
 
 ## Main Results
