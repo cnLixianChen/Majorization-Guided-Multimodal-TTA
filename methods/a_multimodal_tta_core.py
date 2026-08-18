@@ -239,14 +239,39 @@ class Multimodal_TTA_Core(nn.Module):
         return 0.5 * _kl(p, m) + 0.5 * _kl(q, m)
 
     @staticmethod
-    def _rank_disagreement(p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
-        rank_p = torch.argsort(torch.argsort(-p, dim=-1), dim=-1).float()
-        rank_q = torch.argsort(torch.argsort(-q, dim=-1), dim=-1).float()
-        denom = max(1.0, float(p.shape[-1] - 1))
-        return (rank_p - rank_q).abs().mean(dim=-1) / denom
+    def _rank_disagreement(
+        p: torch.Tensor, q: torch.Tensor, chunk_size: int = 128
+    ) -> torch.Tensor:
+        """Eq. (16): R = 2 * N_disc / (K * (K - 1)).
+
+        N_disc counts unordered class pairs whose ordering differs between the
+        two modalities.  Chunking keeps the exact definition practical for K=1000.
+        """
+        batch_size, num_classes = p.shape
+        if num_classes <= 1:
+            return torch.zeros(batch_size, device=p.device, dtype=p.dtype)
+
+        n_disc = torch.zeros(batch_size, device=p.device, dtype=p.dtype)
+        all_idx = torch.arange(num_classes, device=p.device)
+        p_all = p.unsqueeze(1)
+        q_all = q.unsqueeze(1)
+
+        for i0 in range(0, num_classes, chunk_size):
+            i1 = min(i0 + chunk_size, num_classes)
+            pi = p[:, i0:i1].unsqueeze(-1)
+            qi = q[:, i0:i1].unsqueeze(-1)
+            discord = ((pi > p_all) & (qi < q_all)) | ((pi < p_all) & (qi > q_all))
+
+            ii = torch.arange(i0, i1, device=p.device).view(-1, 1)
+            jj = all_idx.view(1, -1)
+            upper_triangle = (ii < jj).unsqueeze(0)
+            n_disc += (discord & upper_triangle).sum(dim=(1, 2)).to(p.dtype)
+
+        return 2.0 * n_disc / float(num_classes * (num_classes - 1))
 
     @staticmethod
     def _sorted_l1_to_anchor(probs: torch.Tensor, anchor: torch.Tensor) -> torch.Tensor:
+        # Eq. (10): sorted L1 deviation from the running modality anchor.
         ps = torch.sort(probs, dim=-1, descending=True).values
         qs = torch.sort(anchor.detach(), dim=-1, descending=True).values.unsqueeze(0).expand_as(ps)
         return (ps - qs).abs().sum(dim=-1)
@@ -258,6 +283,7 @@ class Multimodal_TTA_Core(nn.Module):
         anchor: torch.Tensor,
         ready_flag: torch.Tensor,
     ) -> None:
+        # Eqs. (11)-(13): confidence filter -> batch posterior mean -> EMA anchor.
         conf = probs.max(dim=-1).values
         mask = conf >= self.anchor_conf_threshold
         if not bool(mask.any()):
@@ -281,6 +307,7 @@ class Multimodal_TTA_Core(nn.Module):
         self._update_single_anchor(p_v, self.anchor_v, self.anchor_v_ready)
         self._update_single_anchor(p_t, self.anchor_t, self.anchor_t_ready)
 
+    # Eqs. (18)-(20): reliability-aware gate prior.
     def _compute_prior(
         self,
         rho_v: torch.Tensor,
@@ -334,11 +361,13 @@ class Multimodal_TTA_Core(nn.Module):
 
         js_div = self._js_divergence(p_v, p_t)
         rank_dis = self._rank_disagreement(p_v, p_t)
+        # Eq. (17): JS probability disagreement + weighted ranking disagreement.
         kappa = js_div + self.kappa_rank_weight * rank_dis
 
         prior = self._compute_prior(rho_v, rho_t, kappa)
         alpha = self._compute_alpha(rho_v, rho_t, kappa, p_v, p_t)
 
+        # Eqs. (2)-(3): deployed logit-level fusion followed by softmax.
         z_fuse = alpha.unsqueeze(-1) * z_v + (1.0 - alpha.unsqueeze(-1)) * z_t
         p_fuse = torch.softmax(z_fuse, dim=-1)
         ent = self._entropy_from_probs(p_fuse)
@@ -359,6 +388,7 @@ class Multimodal_TTA_Core(nn.Module):
             z_fuse=z_fuse,
         )
 
+    # Eqs. (21)-(23): entropy + gate KL + batch-marginal diversity.
     def compute_mgmtta_loss(
         self,
         result: AdaptResult,
