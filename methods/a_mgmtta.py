@@ -73,10 +73,11 @@ class MG_MTTA(TTAMethod):
         return model_params + core_params, model_names + core_names
 
     def setup_optimizer(self):
-        # create optimizer with separate parameter groups: model_params @ base LR, core_params @ scaled LR
+        # Paper Sec. 4.1 reports one adaptation LR (1e-3).  The two groups are
+        # retained for explicit ablations, but CORE_LR_MULT defaults to 1.0.
         base_lr = float(self.cfg.OPTIM.LR)
         method = getattr(self.cfg.OPTIM, "METHOD", "Adam")
-        core_lr_mult = float(safe_cfg_get(self.cfg, "MGMTTA", "CORE_LR_MULT", 10.0))
+        core_lr_mult = float(safe_cfg_get(self.cfg, "MGMTTA", "CORE_LR_MULT", 1.0))
         core_lr = base_lr * core_lr_mult
 
         param_groups = []
@@ -143,7 +144,9 @@ class MG_MTTA(TTAMethod):
     def loss_calculation(self, x):
         imgs_test = x[0]
         z_v, z_t = self._extract_stream_logits(imgs_test)
+        # Eqs. (1)-(3), (10), and (17)-(20) are evaluated inside mm_core.
         result = self.mm_core(z_v, z_t)
+        # Eq. (4) with component losses from Eqs. (21)-(23).
         loss, loss_dict = self.mm_core.compute_mgmtta_loss(
             result, lambda_gate=self.lambda_gate, lambda_div=self.lambda_div
         )
