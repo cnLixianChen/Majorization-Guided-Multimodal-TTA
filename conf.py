@@ -340,7 +340,7 @@ _C.MGMTTA.RELIABILITY_TAU = 5.0
 _C.MGMTTA.KAPPA_RANK_WEIGHT = 0.5
 _C.MGMTTA.RELIABILITY_CONFLICT_WEIGHT = 0.0
 _C.MGMTTA.USE_ENTROPY_FEATURE = True
-_C.MGMTTA.CORE_LR_MULT = 10.0
+_C.MGMTTA.CORE_LR_MULT = 1.0          # paper reports one adaptation LR: 1e-3
 
 
 # ------------------------------- Text Shift options ---------------------- #
