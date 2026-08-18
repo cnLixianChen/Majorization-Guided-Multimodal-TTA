@@ -144,11 +144,31 @@ def _js_divergence(p: torch.Tensor, q: torch.Tensor, eps: float = 1e-8) -> torch
     return 0.5 * _kl(p, m) + 0.5 * _kl(q, m)
 
 
-def _rank_disagreement(p: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
-    rank_p = torch.argsort(torch.argsort(-p, dim=-1), dim=-1).float()
-    rank_q = torch.argsort(torch.argsort(-q, dim=-1), dim=-1).float()
-    denom = max(1.0, float(p.shape[-1] - 1))
-    return (rank_p - rank_q).abs().mean(dim=-1) / denom
+def _rank_disagreement(
+    p: torch.Tensor, q: torch.Tensor, chunk_size: int = 128
+) -> torch.Tensor:
+    """Paper Eq. (16): normalized discordant unordered class-pair count."""
+    batch_size, num_classes = p.shape
+    if num_classes <= 1:
+        return torch.zeros(batch_size, device=p.device, dtype=p.dtype)
+
+    n_disc = torch.zeros(batch_size, device=p.device, dtype=p.dtype)
+    all_idx = torch.arange(num_classes, device=p.device)
+    p_all = p.unsqueeze(1)
+    q_all = q.unsqueeze(1)
+
+    for i0 in range(0, num_classes, chunk_size):
+        i1 = min(i0 + chunk_size, num_classes)
+        pi = p[:, i0:i1].unsqueeze(-1)
+        qi = q[:, i0:i1].unsqueeze(-1)
+        discord = ((pi > p_all) & (qi < q_all)) | ((pi < p_all) & (qi > q_all))
+
+        ii = torch.arange(i0, i1, device=p.device).view(-1, 1)
+        jj = all_idx.view(1, -1)
+        upper_triangle = (ii < jj).unsqueeze(0)
+        n_disc += (discord & upper_triangle).sum(dim=(1, 2)).to(p.dtype)
+
+    return 2.0 * n_disc / float(num_classes * (num_classes - 1))
 
 
 def _dist_to_perm(probs: torch.Tensor) -> torch.Tensor:
