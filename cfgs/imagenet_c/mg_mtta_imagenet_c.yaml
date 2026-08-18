@@ -62,12 +62,15 @@ TEXT_SHIFT:
   KEEP_CLEAN_BANK: True
 
 MGMTTA:
+  # Paper-reported setup: B=64, steps=2, lr=1e-3, eta=0.7, mu=0.9.
+  # Other coefficients below are release defaults unless the paper states otherwise.
   UPDATE_PATTERNS: ["prompt_learner", "adapter", "gate", "ln", "bn", "norm"]
   LAMBDA_GATE: 0.1
   LAMBDA_DIV: 0.01
   GATE_HIDDEN_DIM: 8
   GATE_GRANULARITY: batch
-  FIXED_ALPHA: 0.95
+  FIXED_ALPHA: -1.0  # adaptive alpha_phi; negative disables the fixed-alpha shortcut
+  CORE_LR_MULT: 1.0  # keep the core at the paper-reported adaptation LR (1e-3)
   ANCHOR_CONF_THRESHOLD: 0.7
   ANCHOR_MOMENTUM: 0.9
   RELIABILITY_TAU: 5.0
