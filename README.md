@@ -6,15 +6,27 @@ Official PyTorch implementation of:
 
 **Accepted by ACM Multimedia 2026 (MM '26).**
 
-MG-MTTA addresses the **confidence–reliability mismatch** in multimodal test-time adaptation, where an unreliable modality may dominate fusion and produce over-confident but incorrect predictions.
-
-The method keeps the pretrained CLIP backbone frozen and adapts a lightweight fusion module using modality consistency and cross-modal conflict.
+MG-MTTA addresses the **confidence–reliability mismatch** in multimodal test-time adaptation, where an unreliable modality may dominate fusion and produce confident but incorrect predictions.
 
 ## Highlights
 
 - Reliability-aware multimodal fusion
 - Majorization-guided posterior analysis
-- Reduced wrong-more-confident failures under severe shifts
+- Reduced wrong-more-confident failures under modality-specific shifts
+
+## Implementation Note
+
+MG-MTTA does not use two independent CLIP encoders. Instead, the two prediction streams are constructed from the same CLIP image representation.
+
+The visual-reference stream uses the clean text bank, while the text-side stream uses the shifted text bank when textual perturbation is enabled. Visual shift is introduced through corrupted image inputs, while textual shift is introduced through the prompt bank.
+
+This gives the following settings:
+
+- **Textual shift:** clean image + clean/shifted text banks
+- **Visual shift:** corrupted image + clean text bank
+- **Joint shift:** corrupted image + clean/shifted text banks
+
+Under visual-only shift, textual perturbation is disabled and the clean text bank is retained as the textual reference.
 
 ## Main Results
 
